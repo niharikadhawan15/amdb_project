@@ -198,3 +198,46 @@ def create_movie(request):
     return Response({"error_message": "You are not authorized to perform this action ..... Please login first!!!"},status=400)
 
 
+@api_view(['GET'])
+def movie_list(request):
+    movie_id = []
+    # The api uses the value of query parameter q to find movies of the same name.
+    if 'q' in request.query_params:
+        #The api method uses the value of query parameter to find movies of the same name present in the database.
+        query = request.query_params['q']
+
+        #name_icontains manages full match, partial match and case sensitive matches.
+        movie = Movie.objects.filter(name__icontains=query)
+
+        if movie:
+            for i in range(len(movie)):
+                movie_id.append(movie[i].id)
+
+        genre_query = query
+        genre_id = Genres.objects.filter(name__icontains=genre_query).first()
+        movie_genre = Movie_Genre.objects.filter(genre=genre_id)
+
+        for i in range(len(movie_genre)):
+            movie_id.append(Movie.objects.filter(id=movie_genre[i].movie_id).first().id)
+
+        movie = set(movie_id)
+        movie_id = list(movie)
+
+        if len(movie_id):
+            for i in range(len(movie_id)):
+                movie_id[i] = MovieSerializer(instance=Movie.objects.filter(id=movie_id[i]).first()).data
+            return Response(movie_id, status=200)
+
+        return Response({'error_message ':'No such Movies found .....Please try again!!!'}, status=400)
+
+    #If the query parameter is not found, the api fetches all the movies present in the database
+    elif len(['q']) in request.query_params==0:
+        movies = Movie.objects.all()
+        return Response(MovieSerializer(instance=movies, many=True).data, status=200)
+
+    else:
+        print (111)
+        return HttpResponse(json.dumps(movie_id))
+
+
+
