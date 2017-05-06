@@ -53,3 +53,63 @@ def user_create(request):
     return Response({'id':new_user.id,'name':new_user.name,'username':new_user.username,'short_bio':new_user.short_bio,'email':new_user.email,'location':new_user.location},status=200)
 
 
+@api_view(['GET'])
+def get_user(request):
+    #api check for a query parameter i.e.id.
+    if 'user_id' in request.query_params:
+        #If the query parameter is found ,the api fetches the user record else it fetches the record for all the users
+        user=Users.objects.filter(id=request.query_params['user_id'])
+        if len(user) > 0:
+           return Response(UserSerializer(instance=user[0]).data, status=200)
+        else:
+            return Response({"error_message": "User not found!!"}, status=200)
+    else:
+           users = Users.objects.all()
+           return Response(UserSerializer(instance=users,many=True).data, status=200)
+
+@api_view(['POST'])
+def login(request):
+    username=None
+    password=None
+
+
+    if 'username' in request.data:
+        username=request.data['username']
+
+    if 'password' in request.data:
+        password=request.data['password']
+
+    #It check if username and password are present in the request or not and return an appropriate error message if the fields are not present.
+    if not username or not password:
+         return Response({"error_message": "Username or password not provided."}, status=200)
+
+    user = Users.objects.filter(username=username).first()
+
+    if user:
+        # It checks for the password
+        if not check_password(password, user.password):
+            return Response({"error_message": "Username and password combination is not correct."}, status=200)
+        else:
+            #If the user is found the api creates an access token.
+            token = AccessToken(user=user)
+            token.create_token()
+            print token.access_token
+            token.save()
+
+            return Response({"token": token.access_token}, status=200)
+    else:
+             return Response({"error_message": "Username or password is invalid."}, status=200)
+
+# This function checks if the user is logged in through a valid access token.
+@api_view(['GET'])
+def check_token(request):
+    access_token = request.META['HTTP_TOKEN']
+    token_exists=AccessToken.objects.filter(access_token=access_token,is_valid=True).first()
+
+    if token_exists:
+        current_user = token_exists.user
+        return current_user
+    else:
+         return None
+
+
