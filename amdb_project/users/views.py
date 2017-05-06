@@ -240,4 +240,97 @@ def movie_list(request):
         return HttpResponse(json.dumps(movie_id))
 
 
+@api_view(['POST'])
+def movie_review(request):
+    # It checks if the user is logged in through a valid access token or not...
+    current_user = check_token(request)
 
+    # to check if the user is logged in
+    if current_user:
+        try:
+
+            if 'movie_name' in request.data:
+                name = request.data['movie_name']
+            else:
+                return Response({'error_message': 'Movie name not provided.Please provide it.'},status=200)
+
+            if 'rating' in request.data:
+                user_rating = request.data['rating']
+            else:
+                return Response({'error_message':'Rating field is empty. Please provide rating.'},status=200)
+
+            if 'review' in request.data:
+                if len(request.data['review']):
+                    review = request.data['review']
+                else:
+                    return Response({'error_message':'Review is not provided.Kindly provide it'},status=200)
+
+            else:
+                return Response({'error_message': 'Review is not provided.Kindly provide it'},status=200)
+
+        except ValueError:
+
+            return Response({'error_message':'Invalid Request.Make sure all fields are filled'},status=200)
+
+        if len(name) == 0:
+            return Response({'error_message':'Name cannot be empty.Please provide it...'},status=200)
+
+        movie_id = Movie.objects.filter(name=name).first()
+
+        if movie_id:
+            try:
+                #It makes sure that the rating is a valid decimal less than 5.
+                user_rating = float(user_rating)
+            except ValueError:
+                return Response({"error_message": "rating must be a Decimal munber that lies between 0 and 5."}, status=400)
+
+            if 0>user_rating or user_rating>5:
+                return Response({'error_message': 'The movie rating should be less than 5'}, status=200)
+
+            #This makes sure that the user has not already reviewed the movie
+            already_reviewed = Review.objects.filter(user=current_user, movie=movie_id).first()
+
+            if already_reviewed:
+                return Response({'error_message': 'This movie is already reviewed by you...'}, status=200)
+
+            else:
+
+                #If all validations are met then a new review for the movie is created.
+                movie_review = Review.objects.create(movie=movie_id, rating= user_rating, review=review, user=current_user)
+                movie_review.save()
+                overall_rating=0
+
+                #It updates the overall_rating column with the average rating after the new review is created.
+                average_rating = Review.objects.filter(movie=movie_id)
+
+                for i in average_rating:
+                    overall_rating += i.rating
+
+                overall_rating /= len(average_rating)
+
+                Movie.objects.filter(id=movie_id.id).update(overall_rating=overall_rating)
+                return Response({"success": "The movie has been reviewed"}, status=200)
+
+        else:
+            return Response({'error_description ': 'No such movie is in our records '}, status=200)
+
+    #If the user is not logged in, the api responds with a status code 400 and an appropriate message.
+    return Response({'error_description ': 'You are not authorized to perform this action ..... Please login first!!!'}, status=400)
+
+
+
+
+@api_view(['POST'])
+def user_logout (request):
+    token = request.META['HTTP_TOKEN']
+
+    access_token = AccessToken.objects.filter(access_token=token, is_valid=True).first()
+
+    if access_token:
+        # It sets the is_valid to the value False(0).
+        access_token.is_valid=False
+        access_token.save()
+        return Response({'message ': 'User logged out successfully'}, status=200)
+
+    #If the access token is found then it replies with an appropriate error message .
+    return Response({'error_message ': 'The user could not be found'}, status=400)
