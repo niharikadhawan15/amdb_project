@@ -17,15 +17,12 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.conf.urls import url
 from django.contrib import admin
-from users.views import user_create,get_user,login,create_movie ,movie_list,movie_review,user_logout
+from users.views import user_create,get_user,login,create_movie 
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'user/create',user_create),
     url(r'user/',get_user),
     url(r'login',login),
-    url(r'^create/movie',create_movie),
-    url(r'^movie/list',movie_list),
-    url(r'^movie/review',movie_review),
-    url(r'^logout',user_logout)
+    url(r'^create/movie',create_movie)
 ]

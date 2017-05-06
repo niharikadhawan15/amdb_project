@@ -100,3 +100,101 @@ def login(request):
     else:
              return Response({"error_message": "Username or password is invalid."}, status=200)
 
+# This function checks if the user is logged in through a valid access token.
+@api_view(['GET'])
+def check_token(request):
+    access_token = request.META['HTTP_TOKEN']
+    token_exists=AccessToken.objects.filter(access_token=access_token,is_valid=True).first()
+
+    if token_exists:
+        current_user = token_exists.user
+        return current_user
+    else:
+         return None
+
+
+@api_view(['POST'])
+def create_movie(request):
+    # It checks whether the user is logged in
+    current_user = check_token(request)
+    new_genre = "comedy"
+    genre=Genres.objects.create(name=new_genre)
+    genre.save()
+
+    if current_user:
+        try:
+            if 'name' in request.data:
+                name = request.data['name']
+            else:
+                return Response({'error_message ': 'Please enter name of the movie. Movie name is not provided.'},status=200)
+
+            if 'duration_in_minutes' in request.data:
+                duration_in_minutes = int(request.data['duration_in_minutes'])
+            else:
+                return Response({'error_message':'The duration of the movie is not provided. Please provide it.'},status=200)
+
+            if 'release_date' in request.data:
+                release_date = datetime.strptime(request.data['release_date'], '%Y-%m-%d')
+            else:
+                return Response({'error_message':'The release date of the movie is not provided. Please provide it'},status=200)
+
+            if 'censor_board_rating' in request.data:
+                censor_board_rating = request.data['censor_board_rating']
+            else:
+                return Response({'error_message': 'The censor-board rating of the movie is not provided. Please provide it'},status=200)
+
+            if 'poster_picture_url' in request.data:
+                poster_picture_url = request.data['poster_picture_url']
+            else:
+                return Response({'error_message': 'The URL of the poster of the movie is not provided.Please provide it'},status=200)
+
+            if 'genre_name' in request.data:
+                genre_names = request.data['genre_name']
+            else:
+                return Response({'error_message': 'No genre is provided for the film. Please provide it'},status=200)
+
+        except ValueError:
+            return Response({'error_message': 'Please fill all the fields!!!'},status=200)
+
+
+        #This make sure the name field is not an empty string.
+        if len(name) == 0:
+            return Response({'error_message': 'Name cannot be empty'},status=200)
+
+        # This makes sure duration_in_minutes is present and is not zero or negative.
+        if duration_in_minutes < 1:
+            return Response({"error_message": "Invalid duration. The duration of the movie cannot be zero or negative."},status=200)
+
+        movie_exist = Movie.objects.filter(name=name).first()
+
+        if movie_exist:
+            return Response({'error_message': 'Movie is already present'},status=200)
+
+        genre_names = genre_names.split(',')
+
+        genres = []
+
+        for i in genre_names:
+            genre_given = Genres.objects.filter(name=i).first()
+
+            if genre_given:
+                genres.append(genre_given)
+
+            else:
+                return Response({"error_message": "Invalid Genre !"},status=200)
+
+        if len(genres) < 1:
+            return Response({"error_message": "The movie must have atleast one genre"},status=200)
+
+        # This creates a new movie record
+        new_movie = Movie.objects.create(name=name, duration_in_minutes=duration_in_minutes, release_date=release_date, censor_board_rating=censor_board_rating, poster_picture_url=poster_picture_url, user_id=current_user)
+        new_movie.save()
+
+        for genre in genres:
+            Movie_Genre.objects.create(movie=new_movie, genre=genre)
+        return Response(MovieSerializer(instance=new_movie).data,status=200)
+
+    # If the user is not logged in, the api respond with an error message.
+    return Response({"error_message": "You are not authorized to perform this action ..... Please login first!!!"},status=400)
+
+

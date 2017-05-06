@@ -27,3 +27,22 @@ class AccessToken(models.Model):
     def create_token(self):
         self.access_token=uuid.uuid4()
 
+
+class Movie(models.Model):
+    name=models.CharField(max_length=255)
+    duration_in_minutes=models.IntegerField()
+    release_date=models.DateTimeField()
+    overall_rating=models.DecimalField(decimal_places=2,max_digits=4)
+    censor_board_rating=models.CharField(max_length=5)
+    poster_picture_url=models.CharField(max_length=255)
+    user_id=models.ForeignKey(Users)
+
+
+class Genres(models.Model):
+    name=models.CharField(max_length=255)
+
+
+class Movie_Genre(models.Model):
+    movie=models.ForeignKey(Movie)
+    genre=models.ForeignKey(Genres)
+
