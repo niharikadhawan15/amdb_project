@@ -18,3 +18,12 @@ class Users(models.Model):
     updated_on=models.DateTimeField(auto_now=True)
 
 
+class AccessToken(models.Model):
+    user=models.ForeignKey(Users)
+    access_token=models.CharField(max_length=255)
+    last_request_on=models.DateField(auto_now=True)
+    is_valid=models.BooleanField(default=True)
+
+    def create_token(self):
+        self.access_token=uuid.uuid4()
+

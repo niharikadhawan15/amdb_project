@@ -100,16 +100,3 @@ def login(request):
     else:
              return Response({"error_message": "Username or password is invalid."}, status=200)
 
-# This function checks if the user is logged in through a valid access token.
-@api_view(['GET'])
-def check_token(request):
-    access_token = request.META['HTTP_TOKEN']
-    token_exists=AccessToken.objects.filter(access_token=access_token,is_valid=True).first()
-
-    if token_exists:
-        current_user = token_exists.user
-        return current_user
-    else:
-         return None
-
-

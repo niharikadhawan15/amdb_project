@@ -7,6 +7,3 @@ class UserSerializer(ModelSerializer):
         model = Users
         fields = ('id', 'name', 'username', 'short_bio', 'email', 'location', 'created_on', 'updated_on')
 
-
-
-
